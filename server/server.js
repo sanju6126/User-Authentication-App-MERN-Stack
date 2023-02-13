@@ -5,6 +5,7 @@ import express from 'express';
 import morgan from 'morgan';   // used to log requests to the console (express4)
 import cors from 'cors';
 import connect from './database/conn.js';
+import router from './router/route.js'
 
 const app = express();
 
@@ -16,7 +17,7 @@ app.use(morgan('tiny'));
 app.disable('x-powered-by');   //less hacker know about our stack
 
 
-const port = 8000;
+const port = 8080;
 
 // HTTP GET request
 app.get('/', (req, res) =>{
@@ -24,11 +25,17 @@ app.get('/', (req, res) =>{
 });
 
 
+
+// api routes
+app.use('/api',router)
+
+
+
 // start server only when we have valid connection
 connect().then(() => {
     try {
         app.listen(port,() =>{
-            console.log(`Server connected to https://localhost:${port}`);
+            console.log(`Server connected to http://localhost:${port}`);
         
         })
     }
@@ -39,3 +46,4 @@ connect().then(() => {
     console.log("Invalid database connection");
 
 })
+
