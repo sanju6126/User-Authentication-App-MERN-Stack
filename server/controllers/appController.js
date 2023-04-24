@@ -1,13 +1,133 @@
+import UserModel from '../model/User.model.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import ENV from '../config.js';
+
+
+// middleware for verifying user before loggin in
+export async function verifyUser(req,res,next){
+    try {
+        //we are going to make this middleware available for get and post request
+        //when there will be a GET request we will get the data from req.query
+        //and if there will a POST or PUT request we will get the data from req.body
+        const {username} = req.method == "GET" ? req.query : req.body; 
+
+        //check the user existence
+        let exist = await UserModel.findOne({username});
+        if(!exist) return res.status(404).send({error : "User not found"});
+
+        //if the user exists in the mongoDB Database then it will call the next function;
+        next();
+
+    } catch(error){
+        return res.status(404).send({error:"Authentication Error"});
+    }
+}
+
+
+
 
 // POST: http://localhost:8080/api/register
 export async function register(req, res) {
-    res.json('register route')
+    try {
+        // De-Structuring all the data that the User enters in the Request Body/Form(in Register frontend)
+        const {username,password,profile,email} = req.body;
+
+        //check if username already exists. If exists we return a promise
+        const existUsername = new Promise((resolve,reject)=>{
+            UserModel.findOne({username},function(err,user){
+                if(err) reject(new Error(err));
+                if(user) reject({error:"Please use unique username"});
+            })
+            // If username not found in the database we return a promise
+            resolve();
+            
+        }); 
+
+        const existEmail = new Promise((resolve,reject)=>{
+            UserModel.findOne({email},function(err,email){
+                if(err) reject(new Error(err));
+                if(email) reject({error:"Please use unique email"});
+
+                resolve();
+            })
+        })
+
+        Promise.all([existUsername,existEmail])
+            .then(()=>{
+                if(password){
+                    bcrypt.hash(password,10)
+                        .then(hashedPassword=>{
+                            
+                            const user = new UserModel({
+                                username,
+                                password:hashedPassword,
+                                profile:profile || '',    // " " is used to give a deffault value to the profile variable if someone chooses to not to put profile pic
+                                email
+                            });
+                            
+                            // return saved result as a response
+                            user.save()
+                            .then(result=> res.status(201).send({msg:"User Regstered Successfully"}))
+                            .catch(error=> res.status(500).send({error}));
+                            
+
+                        }).catch(error => {
+                            return res.status(500).send({
+                                error:"Unable to hash password"
+
+                            })
+                        })
+                }
+            }).catch (error =>{
+                return res.status(500).send({error});
+            })   
+
+
+
+    } 
+    catch (error) {
+        return res.status(500).send(error);
+    }
 }
 
 
 // POST: http://localhost:8080/api/login
 export async function login(req, res) {
-    res.json('login route')
+    const {username, password} = req.body;
+
+    try {
+
+        UserModel.findOne({username})
+            .then(user => {
+                bcrypt.compare(password,user.password)
+                    .then(passwordCheck =>{
+                        if(!passwordCheck) return res.status(404).send({error:"Don't have password"});
+
+                        //create a jwt token
+                        const token = jwt.sign({  //as a first argument it takes the payload second as jwt secret and thirs as  the expiry time
+                                userId:user._id,
+                                username:user.username,
+                            },ENV.JWT_SECRET, {expiresIn:"24h"});    
+                        
+                        return res.status(200).send({
+                            msg:"Login successful...",
+                            username:user.username,
+                            token
+                        })
+                    
+                    })
+                    .catch(error =>{
+                        return res.status(404).send({error:"Password does not match"});
+                    });
+            })
+            .catch(error =>{
+                return res.status(404).send({error:"Username not found"});
+            });
+    } catch (error) {
+        return res.status(500).send({error});
+    }
+
 }
 
 
