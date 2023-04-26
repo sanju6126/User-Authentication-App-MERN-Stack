@@ -161,9 +161,54 @@ export async function getUser(req, res) {
 }
 
 
-// PUT: http://localhost:8080/api/user/updateUser
-export async function updateUser(req, res) {
-    res.json('updateUser route')
+// PUT: http://localhost:8080/api/updateUser
+// export async function updateUser(req, res) {
+//     try {
+
+//         const id = req.query.id;
+
+//         if(id){
+//             const body = req.body;   //the new data that we want to update instead of the old one
+
+//             //update the data
+//             UserModel.updateOne({_id: id}, body,function(err,data){
+//                 if(err) throw err;
+                
+//                 return response.status(201).send({ msg : "Record Updated...!"});
+//             })
+//         } else {
+//             return res.status(201).send({ error : "User not found"});
+//         }
+
+//     } catch (error){
+//         return res.status(401).send({ error });
+//     }
+// }
+
+export async function updateUser(req,res){
+    try {
+        
+        const id = req.query.id;
+        // const { userId } = req.user;
+
+        if(id){
+            const body = req.body;
+            console.log(body);
+
+            // update the data
+            UserModel.updateOne({ _id : id }, body, function(err, data){
+                if(err) throw err;
+
+                return res.status(201).send({ msg : "Record Updated...!"});
+            })
+
+        }else{
+            return res.status(401).send({ error : "User Not Found...!"});
+        }
+
+    } catch (error) {
+        return res.status(401).send({ error });
+    }
 }
 
 
