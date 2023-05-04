@@ -4,6 +4,7 @@ const router = Router();
 // import all controllers
 import * as controller from '../controllers/appController.js';
 
+import Auth, {localVariables} from '../middleware/auth.js';
 
 
 
@@ -16,15 +17,15 @@ router.route('/login').post(controller.verifyUser,controller.login);            
 
 // GET Methods
 router.route('/user/:username').get(controller.getUser);      //user with username
-router.route('/generateOTP').get(controller.generateOTP);         //generate random OTP
+router.route('/generateOTP').get(controller.verifyUser, localVariables, controller.generateOTP);         //we also need to verify the user before generating random OTP
 router.route('/verifyOTP').get(controller.verifyOTP);           //verify generated OTP
 router.route('/createResetSession').get(controller.createResetSession);  //reset all the variables
 
 
 
 // PUT Methods
-router.route('/updateUser').put(controller.updateUser);          //is use to update the user profile
-router.route('/resetPassword').put(controller.resetPassword);       //use to reset the password
+router.route('/updateUser').put(Auth, controller.updateUser);          //is use to update the user profile....this statement is goinng to first call the middleware AUTH and then the controller
+router.route('/resetPassword').put(controller.verifyUser, controller.resetPassword);       //use to reset the password
 
 
 

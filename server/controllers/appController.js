@@ -2,6 +2,7 @@ import UserModel from '../model/User.model.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import ENV from '../config.js';
+import otpGenerator from 'otp-generator';
 
 
 // middleware for verifying user before loggin in
@@ -188,15 +189,15 @@ export async function getUser(req, res) {
 export async function updateUser(req,res){
     try {
         
-        const id = req.query.id;
-        // const { userId } = req.user;
+        // const id = req.query.id;
+        const { userId } = req.user;
 
-        if(id){
+        if(userId){
             const body = req.body;
             console.log(body);
 
             // update the data
-            UserModel.updateOne({ _id : id }, body, function(err, data){
+            UserModel.updateOne({ _id : userId }, body, function(err, data){
                 if(err) throw err;
 
                 return res.status(201).send({ msg : "Record Updated...!"});
@@ -215,14 +216,22 @@ export async function updateUser(req,res){
 
 // GET: http://localhost:8080/api/generateOTP
 export async function generateOTP(req, res) {
-    res.json('generateOTP route')
+    req.app.locals.OTP = await otpGenerator.generate(6, { lowerCaseAlphabets: false, upperCaseAlphabets: false, specialChars: false})
+    res.status(201).send({code: req.app.locals.OTP})
 }
+//we have to make app locals variable so that we can access the generated OTP to verify the OTP in verifyOTP API mentioned below 
 
 
 
 // GET: http://localhost:8080/api/verifyOTP
 export async function verifyOTP(req, res) {
-    res.json('verifyOTP route')
+    const {code} = req.query;
+    if(parseInt(req.app.locals.OTP) === parseInt(code)){
+        req.app.locals.OTP = null;
+        req.app.locals.resetSession = true;
+        return res.status(201).send({ msg: 'Verified Successfully' });
+    }
+    return res.status(400).send({ error: "Invalid OTP" });
 }
 
 
@@ -237,5 +246,38 @@ export async function createResetSession(req, res) {
 // update the password when we have valid session
 // GET: http://localhost:8080/api/resetPassword
 export async function resetPassword(req, res) {
-    res.json('resetPassword route')
+    try {
+        if(!req.app.locals.resetSession) return res.status(404).send({error : "Session Expired"})
+        //the above line will ensure that we can only reset the password through the OTP generation procedure not directly
+        //if anyone tries to reset it directly then it will show "SESSION EXPIRED"
+
+        const {username,password} = req.body;
+
+        try {
+
+            UserModel.findOne({ username })
+                .then(user => {
+                    bcrypt.hash(password,10)
+                        .then(hashedPassword => {
+                            UserModel.update({username : user.username},
+                            { password : hashedPassword}, function(err,data){
+                                if (err) throw err;
+                                return res.status(201).send({msg : "Record updated successfully"})
+                            });
+                        })
+                        .catch( e => {
+                            return res.status(500).send({error:"Unable to hash Password"});
+                        })
+                })
+                .catch(error => {
+                    return res.status(404).send({error:"Username not found"});
+                })
+
+        } catch (error) {
+            return response.status(500).send({error});
+        }
+
+    } catch (error) {
+        return response.status(401).send({error});
+    }
 }
