@@ -238,7 +238,13 @@ export async function verifyOTP(req, res) {
 // successfully redirect user when OTP is valid
 // GET: http://localhost:8080/api/createResetSession
 export async function createResetSession(req, res) {
-    res.json('createResetSession route')
+    // res.json('createResetSession route')
+    if(req.app.locals.resetSession){
+        req.app.locals.resetSession = false;  //allow access to this route only once
+        return res.status(201).send({ msg: "Access Granted" });
+    }
+    return res.status(440).send({ msg: "Session Expired" });
+
 }
 
 
@@ -259,7 +265,7 @@ export async function resetPassword(req, res) {
                 .then(user => {
                     bcrypt.hash(password,10)
                         .then(hashedPassword => {
-                            UserModel.update({username : user.username},
+                            UserModel.updateOne({username : user.username},
                             { password : hashedPassword}, function(err,data){
                                 if (err) throw err;
                                 return res.status(201).send({msg : "Record updated successfully"})
@@ -280,4 +286,4 @@ export async function resetPassword(req, res) {
     } catch (error) {
         return response.status(401).send({error});
     }
-}
+}  

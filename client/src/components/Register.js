@@ -2,29 +2,30 @@ import React ,{ useState } from 'react'
 
 // insted of anchor tag we are using the Link component of react router dom because whenever we click on the anchor tag it is going to relaod the browser this is not how the SINGLE PAGE APPLICATION WORKS
 // so here whenver we click on the Link we ae just rediected to the Register page without the page being loaded
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import avatar from '../assets/profile.png'
 
 import styles from '../styles/Username.module.css'
 
 //formik and react-hot-toast will help us in validating and  displaying the error messages and success messages
 import { useFormik } from 'formik'      //this will help in validating ans aaccessing the user data from the form
-import { Toaster } from 'react-hot-toast'
+import toast, { Toaster } from 'react-hot-toast'
 import { registerValidate } from '../helper/validate'
 import convertToBase64 from '../helper/convert'
-
+import { registerUser } from '../helper/helper'
 
 
 
 function Register() {
 
+  const navigate = useNavigate()
   const [file,setFile] = useState()
 
   const formik = useFormik({
     initialValues: {
-      email:'',
-      username:'',
-      password: '',       //this property name has to filled when the input box is filled...that's why below in the div textbox we have used this variable name
+      email:'sanjay123@gmail.com',
+      username:'sanjay456',
+      password: 'sanju@6126',       //this property name has to filled when the input box is filled...that's why below in the div textbox we have used this variable name
     },
 
     validate: registerValidate,
@@ -33,7 +34,15 @@ function Register() {
     validateOnChange:false,
     onSubmit: async values => {
       values = await Object.assign(values, { profile: file || '' })
-      console.log(values)
+      // console.log(values) 
+      let registerPromise = registerUser(values)  
+      toast.promise(registerPromise, {
+        loading: 'Creating...',
+        success: <b>Register Successfully...!</b>,
+        error: <b>Could not Register.</b>
+      });
+
+      registerPromise.then(function () { navigate('/')});
     }
   });
 

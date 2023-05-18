@@ -3,8 +3,8 @@
 
 import jwt  from "jsonwebtoken";
 import ENV from '../config.js';
-
-
+ 
+// AUTH middleware  
 //since it is default async function that's why it's not necessary to give this function a NAME.
 export default async function Auth(req,res,next){
     try {
